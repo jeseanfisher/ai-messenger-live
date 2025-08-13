@@ -408,16 +408,16 @@
     }
 
     function sendMessage(){
-      const input = document.getElementById('composer');
       const v = input.value.trim();
       if(!v) return;
       
 
       
       pushMessage(currentContact, 'You', v);
-      i
-        nput.value = '';
-    }
+      i const input = document.getElementById('composer');
+         nput.value = '';
+ 
+       }
 
     function simulateIncoming(from, text){
       // ensure contact exists
@@ -526,6 +526,7 @@
       changePersona();
     }
     function clearData(){ localStorage.removeItem(LS_KEY_MU); chats = {}; drafts = []; aiMode = 'off'; persona = 'pro'; contacts = ['Alex','Customer','Mom','Payroll']; currentContact = 'Alex'; document.getElementById('officeHours').checked = true; document.getElementById('exclusions').value = 'Mom, Payroll'; document.getElementById('reviewReq').checked = true; renderContacts(); renderMessages(); updateQueue(); setMode('off'); changePersona(); }
+    
     // Initialize
     restore();
     // Ensure AI mode checkboxes default to off for a smoother experience
