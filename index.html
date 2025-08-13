@@ -32,6 +32,7 @@
       grid-template-columns: 250px 1fr;
       gap: 16px;
     }
+
     .contacts {
       background: var(--card);
       border: 1px solid #e5e7eb;
@@ -64,6 +65,7 @@
     }
     .contact-avatar {
       height: 32px;
+
       width: 32px;
       border-radius: 999px;
       background: #e5e7eb;
@@ -409,8 +411,12 @@
       const input = document.getElementById('composer');
       const v = input.value.trim();
       if(!v) return;
+      
+
+      
       pushMessage(currentContact, 'You', v);
-      input.value = '';
+      i
+        nput.value = '';
     }
 
     function simulateIncoming(from, text){
@@ -422,12 +428,7 @@
       if(excludedList().includes(from)) return;
       if(document.getElementById('officeHours').checked && !isOfficeHours()) return;
       if(aiMode === 'off') return;
-      const escal = shouldEscalate(text);
-      const reviewRequired = document.getElementById('reviewReq').checked;
-      const replyText = synthesizeReply(aiMode === 'auto' ? 'auto' : 'draft', persona, text);
-      if(aiMode === 'auto' && !reviewRequired && !escal){
-        pushMessage(from, 'AI (You)', replyText + '\n— Sent by Agent');
-      } else {
+} else {
         // queue draft
         drafts.unshift({ contact: from, text: replyText + (aiMode === 'auto' ? ' — queued for approval' : '') });
         updateQueue();
@@ -471,6 +472,7 @@
       banner.style.display = (next === 'off') ? 'none' : 'flex';
       document.getElementById('bannerMode').textContent = (next === 'auto' ? 'Auto-replying' : 'Drafting');
       document.getElementById('bannerPersona').textContent = personaLabel();
+      
       persist();
     }
     function changeMode(){ setMode(document.getElementById('modeSelect').value); }
@@ -534,3 +536,5 @@
   </script>
 </body>
 </html>
+
+
