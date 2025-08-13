@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Messenger — Multi‑User Preview</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #fff;
+      --muted: #6b7280;
+      --primary: #065f46;
+      --accent: #10b981;
+      --danger: #ef4444;
+      --bubble: #e5e7eb;
+      --bubbleYou: #059669;
+      --bubbleYouText: #fff;
+    }
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial;
+    }
+    body {
+      margin: 0;
+      background: linear-gradient(#f8fafc, #eef2f7);
+    }
+    .layout {
+      max-width: 1200px;
+      margin: 24px auto;
+      padding: 0 16px;
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      gap: 16px;
+    }
+    .contacts {
+      background: var(--card);
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(16, 24, 40, 0.08);
+      overflow: hidden;
+      max-height: 80vh;
+    }
+    .contacts .header {
+      padding: 12px 16px;
+      font-weight: 600;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid #f0f1f5;
+    }
+    .contact-item:last-child {
+      border-bottom: none;
+    }
+    .contact-item:hover {
+      background: #f9fafb;
+    }
+    .contact-item.active {
+      background: #ecfdf5;
+    }
+    .contact-avatar {
+      height: 32px;
+      width: 32px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      display: grid;
+      place-items: center;
+      font-weight: 600;
+    }
+    .contact-name {
+      font-weight: 600;
+    }
+    .contact-preview {
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-left: auto;
+    }
+    .chat-wrapper {
+      display: flex;
+      flex-direction: column;
+      height: 80vh;
+    }
+    .chat-card {
+      background: var(--card);
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(16, 24, 40, 0.08);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chat-banner {
+      background: #ecfdf5;
+      color: #065f46;
+      padding: 10px 16px;
+      border-bottom: 1px solid #a7f3d0;
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .messages {
+      flex: 1;
+      overflow: auto;
+      padding: 16px;
+      background: #fff;
+    }
+    .bubble {
+      max-width: 70%;
+      padding: 10px 12px;
+      border-radius: 16px;
+      margin: 6px 0;
+      background: var(--bubble);
+    }
+    .bubble .meta {
+      font-size: 11px;
+      opacity: 0.6;
+      margin-bottom: 4px;
+    }
+    .bubble.me {
+      margin-left: auto;
+      background: var(--bubbleYou);
+      color: var(--bubbleYouText);
+    }
+    .composer {
+      display: flex;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border-top: 1px solid #e5e7eb;
+    }
+    .composer input[type=text] {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      background: #fff;
+    }
+    .composer button {
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      border-radius: 10px;
+      padding: 8px 10px;
+      cursor: pointer;
+    }
+    .composer button.primary {
+      background: var(--accent);
+      border-color: #34d399;
+      color: #00352b;
+    }
+    .controls {
+      background: var(--card);
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(16, 24, 40, 0.08);
+      padding: 16px;
+      margin-top: 16px;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .between {
+      justify-content: space-between;
+    }
+    .muted {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .pill {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      font-size: 12px;
+      background: #fff;
+    }
+    .queue-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .queue {
+      background: #fff;
+      border-radius: 16px;
+      max-width: 800px;
+      width: 100%;
+      padding: 16px;
+      max-height: 80vh;
+      overflow: auto;
+    }
+    .queue .item {
+      border: 1px solid #e5e7eb;
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 12px;
+      margin: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- Contacts list -->
+    <div class="contacts">
+      <div class="header">Contacts</div>
+      <div id="contactList"></div>
+    </div>
+    <!-- Chat + Controls wrapper -->
+    <div class="chat-wrapper">
+      <div class="chat-card">
+        <div class="chat-header">
+          <div id="chatHeaderName" style="font-weight:600">Alex</div>
+          <div class="row">
+            <button title="Simulate incoming" onclick="simulateIncoming(currentContact,'Any update?')">💬</button>
+            <button title="Open review queue" onclick="openQueue()">👁️</button>
+            <button title="Clear data" onclick="clearData()" class="danger">🗑️</button>
+          </div>
+        </div>
+        <div class="chat-banner row between" id="aiBanner">
+          <div>🤖 Agent is <b id="bannerMode">Drafting</b> as <b id="bannerPersona">Professional ✨</b>.</div>
+          <div class="row" style="gap:8px">
+            <button onclick="setMode('off')">⏸️ Pause AI</button>
+            <button id="liveBtn" onclick="toggleLive()">⚡ Start live</button>
+          </div>
+        </div>
+        <div class="messages" id="messages"></div>
+        <div class="composer">
+          <input type="text" id="composer" placeholder="Write a message…" onkeydown="if(event.key==='Enter'){sendMessage();}" />
+          <button class="primary" onclick="sendMessage()">Send</button>
+        </div>
+      </div>
+      <!-- Controls -->
+      <div class="controls">
+        <div class="row between">
+          <div>
+            <div style="font-weight:600;font-size:18px">AI Mode</div>
+            <div class="muted">Flip any thread into AI assistance</div>
+          </div>
+          <div>
+            <select id="modeSelect" onchange="changeMode()">
+              <option value="off">Off</option>
+              <option value="draft">Draft</option>
+              <option value="auto">Auto</option>
+            </select>
+          </div>
+        </div>
+        <br />
+        <div style="display:grid;grid-template-columns:1fr;gap:10px">
+          <div>
+            <div class="muted" style="margin-bottom:4px">Persona</div>
+            <select id="personaSelect" onchange="changePersona()">
+              <option value="pro">Professional ✨</option>
+              <option value="friendly">Friendly 😊</option>
+              <option value="support">Support 🤝</option>
+            </select>
+            <div class="muted" id="toneText" style="margin-top:6px">Tone: Clear, concise, courteous.</div>
+          </div>
+          <div class="row" style="justify-content:space-between;margin-top:8px">
+            <div>🕘 Office hours only</div>
+            <label><input type="checkbox" id="officeHours" onchange="persist()" /></label>
+          </div>
+          <div>
+            <div style="font-size:14px;margin-bottom:6px">Exclude contacts (comma-separated)</div>
+            <input type="text" id="exclusions" value="Mom, Payroll" oninput="persist()" />
+          </div>
+          <div class="row" style="justify-content:space-between;margin-top:8px">
+            <div>Require approval before auto-sending</div>
+            <label><input type="checkbox" id="reviewReq" onchange="persist()" /></label>
+          </div>
+          <div class="row" style="flex-wrap:wrap;gap:8px;margin-top:8px">
+            <!-- Use plain ASCII apostrophe in the string to avoid breaking single-quoted attributes -->
+            <button onclick="simulateIncoming('Customer','Hi, can you confirm todays delivery window?')">Simulate customer ping</button>
+            <button onclick="simulateIncoming('Mom','Dinner at 7?')">Simulate family ping</button>
+            <button onclick="simulateIncoming('Payroll','Please add my new card number.')">Simulate sensitive</button>
+            <span class="pill">Queue: <span id="queueCount">0</span></span>
+          </div>
+          <div class="muted">Tip: Turn on <b>Auto</b> + disable approval to see hands‑free replies. Start <b>Live</b> for continuous pings.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Review Queue Modal -->
+  <div class="queue-backdrop" id="queueModal" onclick="if(event.target.id==='queueModal'){closeQueue()}">
+    <div class="queue">
+      <div class="row between">
+        <div style="font-weight:600;font-size:18px">Review queue</div>
+        <div class="row">
+          <button onclick="approveAll()">Approve all</button>
+          <button onclick="closeQueue()">✖</button>
+        </div>
+      </div>
+      <div id="queueItems" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <script>
+    // Multi-user chat state
+    const LS_KEY_MU = 'ai_msg_preview_multiuser_v1';
+    let contacts = ['Alex','Customer','Mom','Payroll'];
+    let currentContact = 'Alex';
+    let chats = {};
+    let drafts = [];
+    let aiMode = 'off';
+    let persona = 'pro';
+    let liveTimer = null;
+
+    const banks = {
+      pro: ["Absolutely.", "I'll take care of it.", "Circling back.", "Attaching shortly."],
+      friendly: ["You got it!", "No worries.", "Sounds good!", "I gotchu."],
+      support: ["Thanks for flagging.", "Happy to help.", "Let's resolve this together.", "Appreciate your patience."]
+    };
+    const tones = {
+      pro: "Clear, concise, courteous.",
+      friendly: "Warm, upbeat, casual.",
+      support: "Empathetic, solution-focused."
+    };
+    const SAFETY = ['pay','payment','credit card','card number','ssn','legal','medical','diagnose','contract'];
+
+    function ts(){ return new Date().toLocaleTimeString(); }
+    function isOfficeHours(){ const d = new Date(), day=d.getDay(), hr=d.getHours(); return day>=1 && day<=5 && hr>=9 && hr<17; }
+    function excludedList(){ return document.getElementById('exclusions').value.split(',').map(s=>s.trim()).filter(Boolean); }
+
+    function renderContacts(){
+      const list = document.getElementById('contactList');
+      list.innerHTML = '';
+      contacts.forEach(name => {
+        const div = document.createElement('div');
+        div.className = 'contact-item' + (name === currentContact ? ' active' : '');
+        const avatar = document.createElement('div');
+        avatar.className = 'contact-avatar';
+        avatar.textContent = name.charAt(0).toUpperCase();
+        const spanName = document.createElement('span');
+        spanName.className = 'contact-name';
+        spanName.textContent = name;
+        const spanPrev = document.createElement('span');
+        spanPrev.className = 'contact-preview';
+        const msgs = chats[name] || [];
+        spanPrev.textContent = msgs.length ? msgs[msgs.length-1].text.slice(0,25) : '';
+        div.appendChild(avatar);
+        div.appendChild(spanName);
+        div.appendChild(spanPrev);
+        div.onclick = () => { selectContact(name); };
+        list.appendChild(div);
+      });
+    }
+
+    function selectContact(name){
+      currentContact = name;
+      document.getElementById('chatHeaderName').textContent = name;
+      renderContacts();
+      renderMessages();
+    }
+
+    function renderMessages(){
+      const el = document.getElementById('messages');
+      el.innerHTML = '';
+      const msgs = chats[currentContact] || [];
+      msgs.forEach(m => {
+        const wrap = document.createElement('div');
+        wrap.className = 'bubble' + ((m.sender === 'You' || m.sender === 'AI (You)') ? ' me' : '');
+        wrap.innerHTML = '<div class="meta">'+m.sender+'</div><div>'+escapeHtml(m.text)+'</div><div class="meta">'+m.ts+'</div>';
+        el.appendChild(wrap);
+      });
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function escapeHtml(s){ return s.replace(/[&<>]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[c])); }
+
+    function pushMessage(contact, sender, text){
+      if(!chats[contact]) chats[contact] = [];
+      chats[contact].push({ id: Date.now()+Math.random(), sender, text, ts: ts() });
+      persist();
+      if(contact === currentContact) renderMessages();
+      renderContacts();
+    }
+
+    function synthesizeReply(mode, p, input){
+      const bank = banks[p] || ['Got it.'];
+      const tag = bank[Math.floor(Math.random() * bank.length)];
+      if(mode === 'draft') return `${tag} Re: "${input}" — delivering by 4 PM. Want more detail?`;
+      return `${tag} I’ll handle this. ETA today 4 PM. Ping me if anything changes.`;
+    }
+
+    function shouldEscalate(text){
+      const t = text.toLowerCase();
+      return SAFETY.some(k => t.includes(k));
+    }
+
+    function sendMessage(){
+      const input = document.getElementById('composer');
+      const v = input.value.trim();
+      if(!v) return;
+      // push the user's message into the current conversation
+      pushMessage(currentContact, 'You', v);
+      input.value = '';
+      // When the user sends a message, let the agent respond just like it would to incoming messages
+      // Skip if the current contact is excluded or the assistant is off
+      if (excludedList().includes(currentContact)) return;
+      if (document.getElementById('officeHours').checked && !isOfficeHours()) return;
+      if (aiMode === 'off') return;
+      const escal = shouldEscalate(v);
+      const reviewRequired = document.getElementById('reviewReq').checked;
+      const replyText = synthesizeReply(aiMode === 'auto' ? 'auto' : 'draft', persona, v);
+      if (aiMode === 'auto' && !reviewRequired && !escal) {
+        // Immediately send the reply back into the current conversation
+        pushMessage(currentContact, 'AI (You)', replyText + '\n— Sent by Agent');
+      } else {
+        // Queue a draft for approval or escalation
+        drafts.unshift({ contact: currentContact, text: replyText + (aiMode === 'auto' ? ' — queued for approval' : '') });
+        updateQueue();
+        openQueue();
+        persist();
+      }
+    }
+
+    function simulateIncoming(from, text){
+      // ensure contact exists
+      if(!contacts.includes(from)) contacts.push(from);
+      if(!chats[from]) chats[from] = [];
+      pushMessage(from, from, text);
+      // AI response logic
+      if(excludedList().includes(from)) return;
+      if(document.getElementById('officeHours').checked && !isOfficeHours()) return;
+      if(aiMode === 'off') return;
+      const escal = shouldEscalate(text);
+      const reviewRequired = document.getElementById('reviewReq').checked;
+      const replyText = synthesizeReply(aiMode === 'auto' ? 'auto' : 'draft', persona, text);
+      if(aiMode === 'auto' && !reviewRequired && !escal){
+        pushMessage(from, 'AI (You)', replyText + '\n— Sent by Agent');
+      } else {
+        // queue draft
+        drafts.unshift({ contact: from, text: replyText + (aiMode === 'auto' ? ' — queued for approval' : '') });
+        updateQueue();
+        openQueue();
+        persist();
+      }
+    }
+
+    function approveDraft(idx){
+      const d = drafts[idx];
+      const text = d.text.replace(' — queued for approval','');
+      pushMessage(d.contact, 'AI (You)', text + '\n— Sent by Agent');
+      drafts.splice(idx, 1);
+      updateQueue();
+      persist();
+    }
+    function declineDraft(idx){ drafts.splice(idx,1); updateQueue(); persist(); }
+    function approveAll(){ while(drafts.length) approveDraft(0); }
+    function openQueue(){ document.getElementById('queueModal').style.display = 'flex'; renderQueue(); }
+    function closeQueue(){ document.getElementById('queueModal').style.display = 'none'; }
+    function renderQueue(){
+      const list = document.getElementById('queueItems');
+      list.innerHTML = '';
+      if(drafts.length === 0){ list.innerHTML = '<div class="muted">No drafts awaiting approval.</div>'; return; }
+      drafts.forEach((d,i) => {
+        const item = document.createElement('div');
+        item.className = 'item';
+        item.innerHTML = '<div style="font-size:14px;white-space:pre-wrap">'+escapeHtml(d.text)+'</div><div class="muted" style="margin-top:4px">Contact: '+d.contact+'</div><div class="row" style="gap:8px;justify-content:flex-end;margin-top:8px">\
+          <button onclick="declineDraft('+i+')">Decline</button>\
+          <button class="primary" onclick="approveDraft('+i+')">Approve & Send</button>\
+        </div>';
+        list.appendChild(item);
+      });
+    }
+    function updateQueue(){ document.getElementById('queueCount').innerText = drafts.length; renderQueue(); }
+
+    function setMode(next){
+      aiMode = next;
+      document.getElementById('modeSelect').value = next;
+      const banner = document.getElementById('aiBanner');
+      banner.style.display = (next === 'off') ? 'none' : 'flex';
+      document.getElementById('bannerMode').textContent = (next === 'auto' ? 'Auto-replying' : 'Drafting');
+      document.getElementById('bannerPersona').textContent = personaLabel();
+      persist();
+    }
+    function changeMode(){ setMode(document.getElementById('modeSelect').value); }
+    function personaLabel(){ const map = { pro:'Professional ✨', friendly:'Friendly 😊', support:'Support 🤝' }; return map[persona] || 'Professional ✨'; }
+    function changePersona(){ persona = document.getElementById('personaSelect').value; document.getElementById('toneText').textContent = 'Tone: '+({ pro:'Clear, concise, courteous.', friendly:'Warm, upbeat, casual.', support:'Empathetic, solution-focused.' }[persona]); document.getElementById('bannerPersona').textContent = personaLabel(); persist(); }
+    function toggleLive(){ const btn = document.getElementById('liveBtn'); if(liveTimer){ clearInterval(liveTimer); liveTimer=null; btn.textContent='⚡ Start live'; return; } btn.textContent='⏹️ Stop live'; const sendRandom = () => { const froms = contacts; const msgs = ['Any update?','Hi, can you confirm today’s delivery window?','Dinner at 7?','Please send the invoice.','Can I pay by card?','What’s the ETA on the logo?']; const f = froms[Math.floor(Math.random()*froms.length)]; const t = msgs[Math.floor(Math.random()*msgs.length)]; simulateIncoming(f,t); }; liveTimer = setInterval(sendRandom, 5000); }
+    function persist(){ const state = { chats, drafts, aiMode, persona, contacts, currentContact, officeHours: document.getElementById('officeHours').checked, exclusions: document.getElementById('exclusions').value, reviewReq: document.getElementById('reviewReq').checked }; localStorage.setItem(LS_KEY_MU, JSON.stringify(state)); }
+    function restore(){
+      const raw = localStorage.getItem(LS_KEY_MU);
+      if (!raw) {
+        // Seed default conversation and contacts
+        chats = {
+          Alex: [
+            { id: 1, sender: 'Alex', text: 'Hey! Can you chat later today?', ts: ts() },
+            { id: 2, sender: 'You', text: 'For sure. What\'s up?', ts: ts() },
+            { id: 3, sender: 'Alex', text: 'Need an ETA on the design file.', ts: ts() }
+          ]
+        };
+        contacts = ['Alex', 'Customer', 'Mom', 'Payroll'];
+        drafts = [];
+        aiMode = 'auto';
+        persona = 'pro';
+        // Set sensible defaults: office hours off, review approval off
+        document.getElementById('officeHours').checked = false;
+        document.getElementById('exclusions').value = 'Mom, Payroll';
+        document.getElementById('reviewReq').checked = false;
+        currentContact = 'Alex';
+        renderContacts();
+        renderMessages();
+        updateQueue();
+        setMode('auto');
+        changePersona();
+        return;
+      }
+      try {
+        const s = JSON.parse(raw);
+        chats = s.chats || {};
+        drafts = s.drafts || [];
+        aiMode = s.aiMode || 'auto';
+        persona = s.persona || 'pro';
+        contacts = s.contacts || [];
+        currentContact = s.currentContact || (contacts[0] || '');
+        document.getElementById('officeHours').checked = s.officeHours ?? false;
+        document.getElementById('exclusions').value = s.exclusions ?? 'Mom, Payroll';
+        document.getElementById('reviewReq').checked = s.reviewReq ?? false;
+      } catch {}
+      renderContacts();
+      selectContact(currentContact);
+      updateQueue();
+      setMode(aiMode || 'auto');
+      changePersona();
+    }
+    function clearData(){ localStorage.removeItem(LS_KEY_MU); chats = {}; drafts = []; aiMode = 'off'; persona = 'pro'; contacts = ['Alex','Customer','Mom','Payroll']; currentContact = 'Alex'; document.getElementById('officeHours').checked = true; document.getElementById('exclusions').value = 'Mom, Payroll'; document.getElementById('reviewReq').checked = true; renderContacts(); renderMessages(); updateQueue(); setMode('off'); changePersona(); }
+    // Initialize
+    restore();
+    // Ensure AI mode checkboxes default to off for a smoother experience
+    document.getElementById('officeHours').checked = false;
+    document.getElementById('reviewReq').checked = false;
+    // Persist initial state with defaults
+    persist();
+  </script>
+</body>
+</html>
